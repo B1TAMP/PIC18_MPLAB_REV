@@ -1,0 +1,39 @@
+
+
+
+//Knight rider: jednotlive LED se postupne poporade rozsveci a pak v opacnem poradi zhasinaji.
+//Na 3 led by sekvence vypadala takto: 000 ? 001 ? 011 ? 111 ? 011 ? 001
+
+// REV GPIO
+#pragma config FOSC = HSMP      // Oscillator Selection bits (HS oscillator (medium power 4-16 MHz))
+#pragma config PLLCFG = ON      // 4X PLL Enable (Oscillator multiplied by 4)
+#pragma config WDTEN = OFF      // Watchdog Timer Enable bits (Watch dog timer is always disabled. SWDTEN has no effect.)
+#define _XTAL_FREQ 32000000
+
+#include <xc.h>
+
+void main(void) {
+    TRISD &= ~(0b01110000);  // Nastavíme RD4, RD5, RD6 ako výstupy
+    LATD &= ~(0b01110000);   // Zhasneme LED na za?iatku
+    
+    while(1){
+      // Sekvencia Knight Rider
+        LATD = (LATD & 0x8F) | 0b00010000;  // 0001
+        __delay_ms(300);
+        LATD = (LATD & 0x8F) | 0b00110000;  // 0011
+        __delay_ms(300);
+        LATD = (LATD & 0x8F) | 0b01110000;  // 0111
+        __delay_ms(300);
+        LATD = (LATD & 0x8F) | 0b00110000;  // 0011
+        __delay_ms(300);
+        LATD = (LATD & 0x8F) | 0b00010000;  // 0001
+        __delay_ms(300);
+        LATD &= 0x8F;                       // 0000
+        __delay_ms(300);
+    }
+    
+    
+    
+        
+    return;
+}
