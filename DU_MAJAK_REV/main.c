@@ -33,7 +33,7 @@ volatile char AC_flag_nem = 0;   // flag do ktorej ukladam hodnotu pred vypnutim
 volatile char AB_flag = 0;      // flag na spustenie blikania
 volatile char read_char;     // premmena do ktorej zapisujem hodnoty z registra RCREG1;
 
-// Pridajte tieto premenné
+// Pridajte tieto premennÃ©
 volatile char ASn_active = 0;           // premene potrebne na stavovy automat --> inak nam premene nebudu okamzite reagovat
 volatile char ASn_counter = 0;         
 volatile char ASn_num = 0;              
@@ -69,7 +69,7 @@ void __interrupt() ISR(void)
                                 msg.prefix[msg.indx] = read_char;
                             }
                             else if(msg.indx == 2) {
-                                msg.prefix[2] = '\0'; // Ukon?ení ?et?zce prefixu
+                                msg.prefix[2] = '\0'; // Ukon?enÃ­ ?et?zce prefixu
                             }
 
                             msg.indx++;
@@ -260,7 +260,7 @@ void ASn_LED(){
     // prevod char  dat na int  
     num = msg.data[2] - '0';
     
-    // prevod   
+     
     if (num < 0 || num > 9) {
         return;
     }
