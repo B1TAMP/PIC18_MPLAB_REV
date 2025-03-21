@@ -1,0 +1,49 @@
+
+#pragma config FOSC = HSMP      // Oscillator Selection bits (HS oscillator (medium power 4-16 MHz))
+#pragma config PLLCFG = ON      // 4X PLL Enable (Oscillator multiplied by 4)
+#pragma config WDTEN = OFF      // Watchdog Timer Enable bits (Watch dog timer is always disabled. SWDTEN has no effect.)
+#define _XTAL_FREQ 32000000
+
+#include <xc.h>
+
+//Had: Hada predstavuje dvojice sousednich sviticich LED. 
+//Had se posouva tak dlouho, ne? dorazi na konec radku, pak se otoci a plazi se zpet. 
+//Sekvence tedy bude vypadat takto: 00011 ? 00110 ? 01100 ? 11000 ? 01100 atd.
+
+volatile unsigned int counter = 0b00011;
+volatile unsigned char direction = 1; // 1 = doprava, 0 = do?ava
+
+void updateLEDs(unsigned int value) {
+    LATDbits.LATD6 = ~(value & 0x01);
+    LATDbits.LATD5 = ~(value & 0x02) >> 1;
+    LATDbits.LATD4 = ~(value & 0x04) >> 2;
+    LATCbits.LATC4 = ~(value & 0x08) >> 3;
+    LATDbits.LATD3 = ~(value & 0x10) >> 4;
+}
+
+void main(void) {
+    TRISDbits.TRISD6 = 0;
+    TRISDbits.TRISD5 = 0;
+    TRISDbits.TRISD4 = 0;
+    TRISCbits.TRISC4 = 0;
+    TRISDbits.TRISD3 = 0;
+    
+    while (1) {
+        updateLEDs(counter);
+        __delay_ms(500);
+        
+        if (direction) {
+            counter <<= 1;
+            if (counter > 0b11000) { 
+                direction = 0;
+                counter = 0b11000;
+            }
+        } else {
+            counter >>= 1;
+            if (counter < 0b00011) { 
+                direction = 1;
+                counter = 0b00011;
+            }
+        }
+    }
+}

@@ -1,0 +1,40 @@
+
+
+#pragma config FOSC = HSMP      // Oscillator Selection bits (HS oscillator (medium power 4-16 MHz))
+#pragma config PLLCFG = ON      // 4X PLL Enable (Oscillator multiplied by 4)
+#pragma config WDTEN = OFF      // Watchdog Timer Enable bits (Watch dog timer is always disabled. SWDTEN has no effect.)
+#define _XTAL_FREQ 32000000
+
+#include <xc.h>
+//Counter strike alias binarni citani, sekvence vypada nasledovne: 0000 ? 0001 ? 0010 ? 0011 ? 0100 ? ?
+
+void main(void) {
+    // Nastavení pin? jako výstupy
+    TRISDbits.TRISD6 = 0;  // RD6
+    TRISDbits.TRISD5 = 0;  // RD5
+    TRISDbits.TRISD4 = 0;  // RD4
+    TRISCbits.TRISC4 = 0;  // RC4
+    
+   
+    LATDbits.LATD6 = 0;
+    LATDbits.LATD5 = 0;
+    LATDbits.LATD4 = 0;
+    LATCbits.LATC4 = 0;
+    
+    volatile unsigned int counter = 0;
+    
+    while(1) {
+     
+        LATDbits.LATD6 = ~(counter & 0x01);       
+        LATDbits.LATD5 = ~(counter & 0x02) >> 1;
+        LATDbits.LATD4 = ~(counter & 0x04) >> 2;
+        LATCbits.LATC4 = ~(counter & 0x08) >> 3;  
+        
+        
+       counter = (counter + 1) & 0x0F;
+       
+       if(counter == 16){counter  = 0;}
+        __delay_ms(600);
+    
+    }
+}

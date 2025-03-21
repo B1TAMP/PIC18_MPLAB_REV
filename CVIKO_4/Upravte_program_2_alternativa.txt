@@ -1,0 +1,65 @@
+#pragma config FOSC = HSMP      // Oscillator Selection bits (HS oscillator (medium power 4-16 MHz))
+#pragma config PLLCFG = ON      // 4X PLL Enable (Oscillator multiplied by 4)
+#pragma config WDTEN = OFF      // Watchdog Timer Enable bits (Watch dog timer is always disabled. SWDTEN has no effect.)
+#define _XTAL_FREQ 32000000
+
+#include <xc.h>
+//Tlacitko BUT2 bude funkovat jako Pause/Resume
+
+
+
+#define LED1    LATDbits.LATD2
+#define LED2    LATDbits.LATD3
+#define LED3    LATCbits.LATC4
+#define LED4    LATDbits.LATD4
+#define LED5    LATDbits.LATD5
+#define LED6    LATDbits.LATD6
+
+#define DELAY1 __delay_ms(200)
+#define DELAY2 __delay_ms(400)
+#define DELAY3 __delay_ms(900)
+
+volatile unsigned char speed_mode = 0;  
+
+void toggle_leds(void) {
+    LED1 ^= 1; 
+    LED2 ^= 1; 
+    LED3 ^= 1; 
+    LED4 ^= 1; 
+    LED5 ^= 1; 
+    LED6 ^= 1;
+}
+
+void debounce(void) {
+    __delay_ms(25);         
+    if(PORTAbits.RA4) {     
+        __delay_ms(25);    
+        while(PORTAbits.RA4);
+        __delay_ms(25);    
+    }
+}
+
+void main(void) {
+   
+    TRISD = 0x00;   
+    TRISCbits.TRISC4 = 0;
+    TRISAbits.RA4 = 1;  
+
+    while(1) {
+        toggle_leds();  
+        
+      
+        switch(speed_mode) {
+            case 0: DELAY1; break;
+            case 1: DELAY2; break;
+            case 2: DELAY3; break;
+        }
+        
+      
+        if(PORTAbits.RA4) {
+            debounce();
+            speed_mode++;
+            if(speed_mode >= 3) speed_mode = 0;
+        }
+    }
+}
