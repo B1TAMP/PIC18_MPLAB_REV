@@ -1,0 +1,275 @@
+#pragma config FOSC = HSMP      // Externi oscilator
+#pragma config PLLCFG = ON      // 4X DH PLL 
+#pragma config FCMEN = ON       // Fail-Safe Clock 
+#pragma config WDTEN = OFF      // Watchdog Timer OFF
+
+// MAKRO
+#define LED1    LATDbits.LATD2
+#define LED2    LATDbits.LATD3
+#define LED3    LATCbits.LATC4
+#define LED4    LATDbits.LATD4
+#define LED5    LATDbits.LATD5
+#define LED6    LATDbits.LATD6
+#define DELAY (0xFFFF - 49999) 
+
+#include <xc.h> 
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef struct
+{
+    char data[30];  // staticke pole do ktoreho ukladam spravu 
+    char prefix[3]; // prefix spravy pre ASn mod
+    char full;      
+    char indx;
+    
+} message;
+
+#define _XTAL_FREQ 32E6  
+
+volatile char AC_flag = 0;        // flag na spustenie Con. svietenia
+volatile char AC_flag_nem = 0;   // flag do ktorej ukladam hodnotu pred vypnutim AOFF zabezpecuje nasledne spustenie bud  blikanie / Con. svietenie
+volatile char AB_flag = 0;      // flag na spustenie blikania
+volatile char read_char;     // premmena do ktorej zapisujem hodnoty z registra RCREG1;
+
+// Pridajte tieto premenné
+volatile char ASn_active = 0;           // premene potrebne na stavovy automat --> inak nam premene nebudu okamzite reagovat
+volatile char ASn_counter = 0;         
+volatile char ASn_num = 0;              
+volatile char need_process_command = 0;
+
+
+volatile message msg;      // struct msg
+
+// funckie 
+void AC_LED();
+void AB_LED();
+void AON_LED();
+void AOFF_LED();
+void ASn_LED();
+
+void __interrupt() ISR(void)
+{
+    if(RC1IF && RC1IE){
+       
+            read_char = RCREG1;
+            if(RCSTA1bits.OERR){ // zabranuje OVERRUN ERROR
+                CREN1 = 0; 
+                CREN1 = 1;
+            }
+        
+            if(msg.full == 0){
+                    if(read_char != '.'){
+                        if(msg.indx < 29) { 
+                            msg.data[msg.indx] = read_char;
+
+
+                            if(msg.indx < 2) {
+                                msg.prefix[msg.indx] = read_char;
+                            }
+                            else if(msg.indx == 2) {
+                                msg.prefix[2] = '\0'; // Ukon?ení ?et?zce prefixu
+                            }
+
+                            msg.indx++;
+
+                        } 
+                    }
+            
+                    else{
+                       msg.data[msg.indx] = '\0'; 
+                       msg.full = 1;
+                       msg.indx = 0;
+                   }
+            }            
+    }
+   if (TMR1IF && TMR1IE  ){                    
+            if (AB_flag){
+            AB_LED();
+            }
+         
+            TMR1 = DELAY;      
+            TMR1IF = 0;    
+   }
+   if (TMR5IF && TMR5IE) {
+        static unsigned int counter_time = 0;
+        
+        if (ASn_active) {
+            counter_time++;
+            
+            if (counter_time >= 10) {  
+                counter_time = 0;
+                
+                LED1 ^= 1;
+                LED2 ^= 1;    
+                LED3 ^= 1;  
+                LED4 ^= 1;   
+                LED5 ^= 1;    
+                LED6 ^= 1;
+                
+                ASn_counter++;
+                
+                if (ASn_counter >= (ASn_num * 2)+1) {
+                    ASn_active = 0;
+                    AOFF_LED();
+                }
+            }
+        } else {
+            counter_time = 0;
+        }
+        
+        if (msg.full == 1 && !ASn_active) {
+            need_process_command = 1;
+        }
+        
+        TMR5IF = 0;  
+    }
+}
+
+
+void init(void){
+    
+  
+    TRISCbits.TRISC4 = 0;
+    ANSELC = 0x00;         
+    TRISD = 0x00;          
+    TRISCbits.TRISC6 = 1;   // TX pin jako vstup
+    TRISCbits.TRISC7 = 1;   // RX pin jako vstup
+    
+
+    SPBRG1 = 51;             
+    RCSTA1bits.SPEN = 1;      // zapnuti UART
+    TXSTA1bits.SYNC = 0;      // nastaveni asynchroniho modu
+    TXSTA1bits.TXEN = 1;      // zapnuti TX
+    RCSTA1bits.CREN = 1;     
+
+                
+    T1CONbits.TMR1CS = 0b00;        // zdroj casovace 1
+    T1CONbits.T1CKPS = 0b11;        // nastaveni delicky                                             
+    TMR1IE = 1;                     // povoleni preruseni pro TMR1
+    TMR1IF = 0;                     // smazani priznaku (pro jistotu)
+    TMR1ON = 1;
+    
+    T5CONbits.TMR5CS = 0b00;        // zdroj casovace 5
+    T5CONbits.T5CKPS = 0b11;        // nastaveni delicky                                             
+    TMR5IE = 1;                     // povoleni preruseni pro TMR1
+    TMR5IF = 0;                     // smazani priznaku (pro jistotu)
+    TMR5ON = 1;
+   
+    RC1IE = 1;               //zap  preruseni od RCREG
+    PEIE = 1;                // preruseni od periferii    
+    GIE = 1;  
+    
+    msg.full = 0;  
+    msg.indx = 0;
+}
+
+int main(void) {
+    init();
+    while(1){
+    
+          if (msg.full == 1 || need_process_command) {
+            need_process_command = 0;
+            
+            if (ASn_active && msg.full == 1) {
+                ASn_active = 0;
+            }
+            
+            
+            if (strcmp(msg.data, "AC") == 0) {
+                AB_flag = 0;
+                ASn_active = 0;  
+                AC_flag = 1;
+                AC_LED();
+            }
+            
+            if (strcmp(msg.data, "AB") == 0) {
+                AC_flag = 0;
+                ASn_active = 0;  
+                AB_flag = 1;
+            }
+            if(strcmp(msg.data, "AON") == 0){
+                 AON_LED();
+             }
+          
+            
+            if (strcmp(msg.prefix, "AS") == 0) {
+                ASn_LED();
+            }
+            if(strcmp(msg.data, "AOFF") == 0){
+                AOFF_LED();
+             }
+            
+           
+            msg.full = 0;
+            
+          }   
+    }
+    
+}
+    
+void AC_LED(){
+
+    LED1 = 0;
+    LED2 = 0;    
+    LED3 = 0;  
+    LED4 = 0;   
+    LED5 = 0;    
+    LED6 = 0;    
+
+}
+void AB_LED(){
+
+    LED1 ^= 1;
+    LED2 ^= 1;    
+    LED3 ^= 1;  
+    LED4 ^= 1;   
+    LED5 ^= 1;    
+    LED6 ^= 1;    
+
+}
+void AON_LED(){
+    if(AC_flag == 1 || AC_flag_nem){
+
+      AC_LED();  
+    }
+    else{
+        AB_flag = 1;
+    }
+
+}
+void AOFF_LED(){
+    AC_flag_nem = AC_flag; 
+    AC_flag = AB_flag = 0;
+    
+    LED1 = 1;
+    LED2 = 1;    
+    LED3 = 1;  
+    LED4 = 1;   
+    LED5 = 1;    
+    LED6 = 1;    
+}
+void ASn_LED(){
+     char num;
+   
+     // ak sprava nie dlha 3 ch --> return
+    if (strlen(msg.data) != 3) { 
+        return; 
+    }    
+    // prevod char  dat na int  
+    num = msg.data[2] - '0';
+    
+    // prevod   
+    if (num < 0 || num > 9) {
+        return;
+    }
+
+    ASn_num = num;
+    ASn_counter = 0;
+    ASn_active = 1;
+    AB_flag = 0;  
+    AC_flag = 0; 
+      
+      
+}
