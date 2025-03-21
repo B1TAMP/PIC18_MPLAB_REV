@@ -87,38 +87,38 @@ void UART_PutStr(char * str){
 }  
 void recieve_send(){
      
-// Check if character is available
+
     while(UART_CharAvailable()) {
         // Read the character
         temp = RCREG1;
         
-        // Check for terminal condition (period)
+      
         if(temp == '.') {
             msg_full = 1;
         }
-        // Check for buffer overflow
+      
         else if(itr >= 31) { // 32-1 to leave room for null terminator
             msg_full = 1;
             msg[itr] = temp; // Store the last character
         }
-        // Store the character
+     
         else {
             msg[itr] = temp;
             itr++;
         }
         
-        // If message is complete, send it back in reverse
+       
         if(msg_full) {
             // Add null terminator
             msg[itr] = '\0';
             
-            // Send characters in reverse order
+      
             int i;
             for(i = itr - 1; i >= 0; i--) {
                 UART_PutChar(msg[i]);
             }
             
-            // Reset message state
+            
             msg_full = 0;
             itr = 0;
         }
