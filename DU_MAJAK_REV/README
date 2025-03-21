@@ -1,0 +1,3 @@
+Riesenie:
+majak_prototyp.txt -->  jednoduche riesenie ale nieje optimalne (musi sa pockat az ASn odblika n krat)
+majak_riesenie_stav_automat.txt  --> optimalne riesenie s vyuzitim stavoveho automatu schema vo files (riesenie je vsak dost "zlozite")
