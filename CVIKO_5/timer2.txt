@@ -1,0 +1,58 @@
+// REV INTERRUPT
+#pragma config FOSC = HSMP      // Oscillator Selection bits (HS oscillator (medium power 4-16 MHz))
+#pragma config PLLCFG = ON      // 4X PLL Enable (Oscillator multiplied by 4)
+#pragma config WDTEN = OFF      // Watchdog Timer Enable bits (Watch dog timer is always disabled. SWDTEN has no effect.)
+
+#include <xc.h>
+
+#define _XTAL_FREQ 32E6             // definice fosc pro knihovnu
+#define LED LATDbits.LATD2          // ledka
+#define DELAY1 (0xFFFF - 24999)      // hodnota timeru pro 0.05 s
+#define DELAY2 (0xFFFF - 59999) 
+
+
+//roz?i?te Ukázku 2 ve stejném duchu jako v úloze tj. pouze pou?ijete p?eru?ení.
+// Tj. upravte program tak, aby do registru TMR1 vkládal jednu ze dvou konstant, které upraví periodu ?ekání.
+
+volatile unsigned char swtch = 0;
+void __interrupt() T1_ISR_HANDLER(void){
+    if (TMR1IF && TMR1IE) {  // Ak je preru?enie od Timer1
+        LED ^= 1;  // Preklopenie LED
+
+       
+        if (swtch < 10) {
+            TMR1 = DELAY1;  // Krátka perióda
+        } else {
+            TMR1 = DELAY2;  // Dlhá perióda
+        }
+
+        swtch++;  
+
+        if (swtch >= 20) { // Reset po 20 cykloch (10x rýchle + 10x pomalé) inak by sme to nevideli !!!!
+            swtch = 0;
+        }
+        
+        TMR1IF = 0;  // Resetovanie príznaku preru?enia
+    }
+}
+
+void init(void){
+    
+    TRISDbits.TRISD2 = 0;         
+    
+    T1CONbits.TMR1CS = 0b00;        
+    T1CONbits.T1CKPS = 0b11;                                                 
+    TMR1IE = 1;                    
+    TMR1IF = 0;                     
+    PEIE = 1;                      
+    TMR1ON = 1;                   
+    GIE = 1;                        
+}
+
+void main(void) {
+    init();                       
+    
+    while(1){
+                 
+    }
+}
