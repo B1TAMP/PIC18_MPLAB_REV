@@ -34,7 +34,7 @@ volatile char AB_flag = 0;      // flag na spustenie blikania
 volatile char read_char;     // premmena do ktorej zapisujem hodnoty z registra RCREG1;
 
 // Pridajte tieto premenné
-volatile char ASn_active = 0;           // premene potrebne na stavovy automat --> inak nam premene nebudu okamzite reagovat
+volatile char ASn_active = 0;          // premene potrebne na stavovy automat --> inak nam majak  nebude okamzite reagovat aj pocas ASn modu
 volatile char ASn_counter = 0;         
 volatile char ASn_num = 0;              
 volatile char need_process_command = 0;
