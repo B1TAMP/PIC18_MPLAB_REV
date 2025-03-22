@@ -89,7 +89,7 @@ void recieve_send(){
      
 
     while(UART_CharAvailable()) {
-        // Read the character
+      
         temp = RCREG1;
         
       
@@ -97,9 +97,9 @@ void recieve_send(){
             msg_full = 1;
         }
       
-        else if(itr >= 31) { // 32-1 to leave room for null terminator
+        else if(itr >= 31) { 
             msg_full = 1;
-            msg[itr] = temp; // Store the last character
+            msg[itr] = temp; 
         }
      
         else {
